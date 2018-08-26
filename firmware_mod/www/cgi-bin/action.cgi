@@ -346,7 +346,15 @@ if [ -n "$F_cmd" ]; then
     flip-off)
       /system/sdcard/bin/setconf -k f -v 0
     ;;
+	
+	night_mode_on)
+		night_mode on
+	;;
 
+	night_mode_off)
+		night_mode off
+	;;
+	
     motion_detection_on)
         motion_sensitivity=4
         if [ -f /system/sdcard/config/motion.conf ]; then
