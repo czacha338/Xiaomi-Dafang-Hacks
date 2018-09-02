@@ -211,6 +211,14 @@ if [ -n "$F_cmd" ]; then
     h264_nosegmentation_start)
       /system/sdcard/controlscripts/rtsp-h264 start
     ;;
+	
+	domoticz_start)
+      /system/sdcard/controlscripts/domoticz start
+    ;;
+	
+	domoticz_stop)
+      /system/sdcard/controlscripts/domoticz stop
+    ;;
 
     xiaomi_start)
       echo 1 > /sys/class/gpio/gpio39/value

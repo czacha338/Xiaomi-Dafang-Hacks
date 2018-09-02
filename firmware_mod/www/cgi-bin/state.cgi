@@ -75,6 +75,10 @@ if [ -n "$F_cmd" ]; then
   motion_tracking)
     echo $(motion_tracking status)
     ;;
+	
+  domoticz)
+    echo $(domoticz status)
+    ;;
 
   *)
     echo "Unsupported command '$F_cmd'"

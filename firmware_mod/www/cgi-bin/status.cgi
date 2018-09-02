@@ -752,6 +752,15 @@ cat << EOF
     </div>
 </div>
 
+<!-- Domoticz -->
+<div class='card status_card'>
+    <header class='card-header'><p class='card-header-title'>Domoticz interface</p></header>
+    <div class='card-content'>
+        <button class="button is-link" onClick="call('cgi-bin/action.cgi?cmd=domoticz_start')">On</button>
+        <button class="button is-warning" onClick="call('cgi-bin/action.cgi?cmd=domoticz_stop')">Off</button>
+    </div>
+</div>
+
 <!-- Original Xiaomi Software -->
 <div class='card status_card'>
     <header class='card-header'><p class='card-header-title'>Start original Xiaomi Software</p></header>

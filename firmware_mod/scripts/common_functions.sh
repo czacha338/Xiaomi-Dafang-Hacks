@@ -3,6 +3,9 @@
 # This file is supposed to bundle some frequently used functions
 # so they can be easily improved in one place and be reused all over the place
 
+#include domoticz common file
+. /system/sdcard/scripts/domoticz_common_functions.sh
+
 # Initialize  gpio pin
 init_gpio(){
   GPIOPIN=$1
@@ -248,9 +251,11 @@ rtsp_h264_server(){
   case "$1" in
   on)
     /system/sdcard/controlscripts/rtsp-h264 start
+	domoticz_send_state $IDX_RTSP 1
     ;;
   off)
     /system/sdcard/controlscripts/rtsp-h264 stop
+	domoticz_send_state $IDX_RTSP 0
     ;;
   status)
     if /system/sdcard/controlscripts/rtsp-h264 status | grep -q "PID"
@@ -334,11 +339,13 @@ night_mode(){
     ir_led on
     ir_cut off
     /system/sdcard/bin/setconf -k n -v 1
+	domoticz_send_state $IDX_NIGHT_MODE 1
     ;;
   off)
     ir_led off
     ir_cut on
     /system/sdcard/bin/setconf -k n -v 0
+	domoticz_send_state $IDX_NIGHT_MODE 0
     ;;
   status)
     status=$(/system/sdcard/bin/setconf -g n)

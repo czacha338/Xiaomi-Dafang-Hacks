@@ -9,6 +9,10 @@
 
 PIDFILE='/run/domoticz.pid'
 
+if [ ! -f /system/sdcard/config/domoticz.conf ]; then
+  echo "You have to configure domoticz first. Please see /system/sdcard/config/domoticz.conf.dist for further instructions"
+fi
+
 if [ $CONNECT_TO_DOMOTICZ==1 ]; then
 	while true; do
 		if [ $IDX_RTSP -ne 0 ]; then
