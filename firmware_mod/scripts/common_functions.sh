@@ -180,25 +180,10 @@ motor(){
     /system/sdcard/bin/motor -d f -s "$steps"
     ;;
   status)
-    if [ "$2" = "horizontal" ]
-      then
-        status=$(/system/sdcard/bin/motor -d u -s 0 | grep "x_")
-        if echo "$status" | grep -q "x_min: 1" ; then
-          echo "left_endstop"
-        elif echo "$status" | grep -q "x_max: 1" ; then
-          echo "right_endstop"
-        else
-          echo "$status" |grep "x_steps" | cut -f2- -d ' '
-        fi
+    if [ "$2" = "horizontal" ]; then
+        echo $(/system/sdcard/bin/motor -d u -s 0 | grep "x:" | awk  '{print $2}')
     else
-        status=$(/system/sdcard/bin/motor -d u -s 0 | grep "y_")
-        if echo "$status" | grep -q "y_min: 1" ; then
-          echo "down_endstop"
-        elif echo "$status" | grep -q "y_max: 1" ; then
-          echo "up_endstop"
-        else
-          echo "$status" |grep "y_steps" | cut -f2- -d ' '
-        fi
+        echo $(/system/sdcard/bin/motor -d u -s 0 | grep "y:" | awk  '{print $2}')
     fi
     ;;
   esac
@@ -309,6 +294,30 @@ motion_detection(){
     esac
   esac
 }
+
+# Control the motion detection mail function                                                                                                                            
+motion_send_mail(){                                                                                                                                                
+  case "$1" in                                                                                                                                                     
+  on)                                                                                                                                                              
+    rewrite_config /system/sdcard/config/motion.conf sendemail "true"
+    ;;                                                                                                                                                             
+  off)                                                                                                                                                             
+    rewrite_config /system/sdcard/config/motion.conf sendemail "false"
+    ;;                                                                                                                                                             
+  status)                                                                                                                                                          
+    status=`awk '/sendemail/' /system/sdcard/config/motion.conf |cut -f2 -d \=`                                                                                                          
+    case $status in                                                                                                                                                
+      false)                                                                                                                                                          
+        echo "OFF"                                                                                                                                                 
+        ;;                                                                                                                                                         
+      true)                                                                                                                                                           
+        echo "ON"                                                                                                                                                  
+        ;;                                                                                                                                                         
+    esac                                                                                                                                                           
+  esac                                                                                                                                                             
+} 
+
+
 
 # Control the motion tracking function
 motion_tracking(){

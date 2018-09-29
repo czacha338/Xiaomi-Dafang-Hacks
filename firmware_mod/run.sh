@@ -78,29 +78,40 @@ EOF
 fi
 /system/sdcard/bin/busybox crond -L /system/sdcard/log/crond.log -c /system/sdcard/config/cron/crontabs
 
-## Start Wifi:
-if [ ! -f $CONFIGPATH/wpa_supplicant.conf ]; then
-  echo "Warning: You have to configure wpa_supplicant in order to use wifi. Please see /system/sdcard/config/wpa_supplicant.conf.dist for further instructions."
-fi
-MAC=$(grep MAC < /params/config/.product_config | cut -c16-27 | sed 's/\(..\)/\1:/g;s/:$//')
-if [ -f /driver/8189es.ko ]; then
-  # Its a DaFang
-  insmod /driver/8189es.ko rtw_initmac="$MAC"
-elif [ -f /driver/8189fs.ko ]; then
-  # Its a XiaoFang T20
-  insmod /driver/8189fs.ko rtw_initmac="$MAC"
-else
-  # Its a Wyzecam V2
-  insmod /driver/rtl8189ftv.ko rtw_initmac="$MAC"
-fi
-wpa_supplicant_status="$(wpa_supplicant -B -i wlan0 -c $CONFIGPATH/wpa_supplicant.conf -P /var/run/wpa_supplicant.pid)"
-echo "wpa_supplicant: $wpa_supplicant_status" >> $LOGPATH
-
+## Set Hostname
 if [ ! -f $CONFIGPATH/hostname.conf ]; then
   cp $CONFIGPATH/hostname.conf.dist $CONFIGPATH/hostname.conf
 fi
 hostname -F $CONFIGPATH/hostname.conf
-udhcpc_status=$(udhcpc -i wlan0 -p /var/run/udhcpc.pid -b -x hostname:"$(hostname)")
+
+if [ -f $CONFIGPATH/usb_eth_driver.conf ]; then
+  ## Start USB Ethernet:
+  echo "USB_ETHERNET: Detected USB config. Loading USB Ethernet driver" >> $LOGPATH
+  insmod /system/sdcard/driver/usbnet.ko
+  insmod /system/sdcard/driver/asix.ko
+  ifconfig eth0 up
+  udhcpc_status=$(udhcpc -i eth0 -p /var/run/udhcpc.pid -b -x hostname:"$(hostname)")
+else
+  ## Start Wifi:
+  if [ ! -f $CONFIGPATH/wpa_supplicant.conf ]; then
+  echo "Warning: You have to configure wpa_supplicant in order to use wifi. Please see /system/sdcard/config/wpa_supplicant.conf.dist for further instructions."
+  fi
+  MAC=$(grep MAC < /params/config/.product_config | cut -c16-27 | sed 's/\(..\)/\1:/g;s/:$//')
+  if [ -f /driver/8189es.ko ]; then
+    # Its a DaFang
+    insmod /driver/8189es.ko rtw_initmac="$MAC"
+  elif [ -f /driver/8189fs.ko ]; then
+    # Its a XiaoFang T20
+    insmod /driver/8189fs.ko rtw_initmac="$MAC"
+  else
+    # Its a Wyzecam V2
+    insmod /driver/rtl8189ftv.ko rtw_initmac="$MAC"
+  fi
+  wpa_supplicant_status="$(wpa_supplicant -d -B -i wlan0 -c $CONFIGPATH/wpa_supplicant.conf -P /var/run/wpa_supplicant.pid)"
+  echo "wpa_supplicant: $wpa_supplicant_status" >> $LOGPATH
+  udhcpc_status=$(udhcpc -i wlan0 -p /var/run/udhcpc.pid -b -x hostname:"$(hostname)")
+fi
+
 echo "udhcpc: $udhcpc_status" >> $LOGPATH
 
 ## Sync the via NTP:
@@ -108,6 +119,7 @@ if [ ! -f $CONFIGPATH/ntp_srv.conf ]; then
   cp $CONFIGPATH/ntp_srv.conf.dist $CONFIGPATH/ntp_srv.conf
 fi
 ntp_srv="$(cat "$CONFIGPATH/ntp_srv.conf")"
+timeout -t 30 sh -c "until ping -c1 \"$ntp_srv\" &>/dev/null; do sleep 3; done";
 /system/sdcard/bin/busybox ntpd -p "$ntp_srv"
 
 ## Load audio driver module:
@@ -137,17 +149,19 @@ insmod /driver/sample_motor.ko
 # calibrate,compatible newer models.(But the old DAFANG does not work.）
 # motor calibrate
 
-## Start Sensor:
-insmod /driver/tx-isp.ko isp_clk=100000000
-if [ -f /driver/sensor_jxf23.ko ]; then
-  # Its a Xioafang 1S
-  insmod /driver/sensor_jxf23.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
-else
-  # Its a Dafang Classic/Wyzecam V2
-  insmod /driver/sensor_jxf22.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
-fi
+## Determine the image sensor model:
 insmod /system/sdcard/driver/sinfo.ko
+echo 1 >/proc/jz/sinfo/info
+sensor=$(grep -m1 -oE 'jxf[0-9]*$' /proc/jz/sinfo/info)
+echo "Determined image sensor model as $sensor" >> $LOGPATH
 
+## Start the image sensor:
+insmod /driver/tx-isp.ko isp_clk=100000000
+if [ $sensor = 'jxf22' ]; then
+  insmod /driver/sensor_jxf22.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
+else
+  insmod /driver/sensor_jxf23.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
+fi
 
 ## Start FTP & SSH Server:
 dropbear_status=$(/system/sdcard/bin/dropbearmulti dropbear -R)
