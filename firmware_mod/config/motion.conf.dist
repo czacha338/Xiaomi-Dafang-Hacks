@@ -13,8 +13,8 @@ motion_tracking=off
 # Configure how to deal with motion events:
 
 motion_trigger_led=true
-save_snapshot=false
-max_snapshots=20
+save_snapshot=true
+max_snapshots=4
 publish_mqtt_message=false
 sendemail=false
 send_telegram=false
