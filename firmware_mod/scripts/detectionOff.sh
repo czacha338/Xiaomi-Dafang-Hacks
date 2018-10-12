@@ -4,6 +4,9 @@
 . /system/sdcard/config/motion.conf
 . /system/sdcard/scripts/common_functions.sh
 
+# common functions for domoticz
+. /system/sdcard/scripts/domoticz_common_functions.sh
+
 # Turn off the amber LED
 if [ "$motion_trigger_led" = true ] ; then
 	yellow_led off
@@ -22,3 +25,6 @@ for i in /system/sdcard/config/userscripts/motiondetection/*; do
         $i off
     fi
 done
+
+# Update status to domoticz
+domoticz_send_state $IDX_MOTION_DETECTED 0
