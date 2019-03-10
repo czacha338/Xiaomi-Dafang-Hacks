@@ -55,6 +55,22 @@ echo "Bind mounted /system/sdcard/root to /root" >> $LOGPATH
 mount -o bind /system/sdcard/etc /etc
 echo "Bind mounted /system/sdcard/etc to /etc" >> $LOGPATH
 
+## Create a swap file on SD if desired
+SWAP=false
+SWAPPATH="/system/sdcard/swapfile"
+SWAPSIZE=256
+if [ "$SWAP" = true ]; then
+  if [ ! -f $SWAPPATH ]; then
+    echo "Creating ${SWAPSIZE}MB swap file on SD card"  >> $LOGPATH
+    dd if=/dev/zero of=$SWAPPATH bs=1M count=$SWAPSIZE
+    mkswap $SWAPPATH
+    echo "Swap file created in $SWAPPATH" >> $LOGPATH
+  fi
+  echo "Configuring swap file" >> $LOGPATH
+  swapon $SWAPPATH
+  echo "Swap set on file $SWAPPATH" >> $LOGPATH
+fi
+
 ## Create crontab dir and start crond:
 if [ ! -d /system/sdcard/config/cron ]; then
   mkdir -p ${CONFIGPATH}/cron/crontabs
@@ -106,8 +122,8 @@ if [ -f $CONFIGPATH/usb_eth_driver.conf ]; then
   echo "USB_ETHERNET: Detected USB config. Loading USB Ethernet driver" >> $LOGPATH
   insmod /system/sdcard/driver/usbnet.ko
   insmod /system/sdcard/driver/asix.ko
-  ifconfig eth0 up
-  udhcpc_status=$(udhcpc -i eth0 -p /var/run/udhcpc.pid -b -x hostname:"$(hostname)")
+
+  network_interface_name="eth0"
 else
   ## Start Wifi:
   if [ ! -f $CONFIGPATH/wpa_supplicant.conf ]; then
@@ -126,12 +142,39 @@ else
   fi
   wpa_supplicant_status="$(wpa_supplicant -d -B -i wlan0 -c $CONFIGPATH/wpa_supplicant.conf -P /var/run/wpa_supplicant.pid)"
   echo "wpa_supplicant: $wpa_supplicant_status" >> $LOGPATH
-  udhcpc_status=$(udhcpc -i wlan0 -p /var/run/udhcpc.pid -b -x hostname:"$(hostname)")
+
+  network_interface_name="wlan0"
 fi
 
-echo "udhcpc: $udhcpc_status" >> $LOGPATH
+## Configure network address
+if [ -f "$CONFIGPATH/staticip.conf" ]; then
+  # Install a resolv.conf if present so DNS can work
+  if [ -f "$CONFIGPATH/resolv.conf" ]; then
+    cp "$CONFIGPATH/resolv.conf" /etc/resolv.conf
+  fi
 
-## Sync the via NTP:
+  # Configure staticip/netmask from config/staticip.conf
+  staticip_and_netmask=$(cat "$CONFIGPATH/staticip.conf" | grep -v "^$" | grep -v "^#")
+  ifconfig "$network_interface_name" $staticip_and_netmask
+  ifconifg "$network_interface_name" up
+  # Configure default gateway
+  if [ -f "$CONFIGPATH/defaultgw.conf" ]; then
+    defaultgw=$(cat "$CONFIGPATH/defaultgw.conf" | grep -v "^$" | grep -v "^#")
+    route add default gw $defaultgw $network_interface_name
+    echo "Configured $defaultgw as default gateway" >> $LOGPATH
+  fi
+  echo "Configured $network_interface_name with static address $staticip_and_netmask" >> $LOGPATH
+else
+  # Configure with DHCP client
+  ifconifg "$network_interface_name" up
+  udhcpc_status=$(udhcpc -i "$network_interface_name" -p /var/run/udhcpc.pid -b -x hostname:"$(hostname)")
+  echo "udhcpc: $udhcpc_status" >> $LOGPATH
+fi
+
+## Set Timezone
+set_timezone
+
+## Sync the time via NTP:
 if [ ! -f $CONFIGPATH/ntp_srv.conf ]; then
   cp $CONFIGPATH/ntp_srv.conf.dist $CONFIGPATH/ntp_srv.conf
 fi
@@ -159,12 +202,6 @@ blue_led on
 
 ## Load motor driver module:
 insmod /driver/sample_motor.ko
-# Don't calibrate the motors for now as for newer models the endstops don't work:
-# motor hcalibrate
-# motor vcalibrate
-
-# calibrate,compatible newer models.(But the old DAFANG does not work.）
-# motor calibrate
 
 ## Determine the image sensor model:
 insmod /system/sdcard/driver/sinfo.ko
@@ -177,15 +214,16 @@ insmod /driver/tx-isp.ko isp_clk=100000000
 if [ $sensor = 'jxf22' ]; then
   insmod /driver/sensor_jxf22.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
 else
-  insmod /driver/sensor_jxf23.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
+  if [ ! -f /etc/sensor/jxf23.bin ]; then
+    cp /etc/sensor/jxf22.bin /etc/sensor/jxf23.bin
+    cp /etc/sensor/jxf22move.txt /etc/sensor/jxf23move.txt
+  fi
+  insmod /system/sdcard/driver/sensor_jxf23.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
 fi
 
-## Start FTP & SSH Server:
+## Start SSH Server:
 dropbear_status=$(/system/sdcard/bin/dropbearmulti dropbear -R)
 echo "dropbear: $dropbear_status" >> $LOGPATH
-
-bftpd_status=$(/system/sdcard/bin/bftpd -d)
-echo "bftpd: $bftpd_status" >> $LOGPATH
 
 ## Create a certificate for the webserver
 if [ ! -f $CONFIGPATH/lighttpd.pem ]; then
@@ -214,6 +252,11 @@ fi
 
 ## Autostart all enabled services:
 for i in /system/sdcard/config/autostart/*; do
+  $i
+done
+
+## Autostart startup userscripts
+for i in /system/sdcard/config/userscripts/startup/*; do
   $i
 done
 
