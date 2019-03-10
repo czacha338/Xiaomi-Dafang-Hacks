@@ -37,20 +37,22 @@ $SERVER["socket"] == ":443" {
 
 # Support letsencrypt SSL cert paths
 # (we don't want to upgrade to SSL nor auth' this path)
-$HTTP["url"] !~ "^/.well-known/(.*)" {
 
-    auth.backend                = "htdigest"
-    auth.backend.htdigest.userfile = "/system/sdcard/config/lighttpd.user"
-    auth.require = ( "/" => ("method" => "basic", "realm" => "all", "require" => "user=root"))
-
-    $HTTP["scheme"] == "http" {
-        # capture vhost name with regex conditiona -> %0 in redirect pattern
-        # must be the most inner block to the redirect rule
-        $HTTP["host"] =~ ".*" {
-            url.redirect = (".*" => "https://%0$0")
-        }
-    }
-}
+# disable https for domoticz integration
+#$HTTP["url"] !~ "^/.well-known/(.*)" {
+#
+#   auth.backend                = "htdigest"
+#    auth.backend.htdigest.userfile = "/system/sdcard/config/lighttpd.user"
+#    auth.require = ( "/" => ("method" => "basic", "realm" => "all", "require" => "user=root"))
+#
+#    $HTTP["scheme"] == "http" {
+#        # capture vhost name with regex conditiona -> %0 in redirect pattern
+#        # must be the most inner block to the redirect rule
+#        $HTTP["host"] =~ ".*" {
+#            url.redirect = (".*" => "https://%0$0")
+#       }
+#    }
+#}
 
 ## enable debugging
 #debug.log-request-header     = "enable"

@@ -182,6 +182,14 @@ if [ -n "$F_cmd" ]; then
     h264_nosegmentation_start)
       /system/sdcard/controlscripts/rtsp-h264 start
     ;;
+	
+	domoticz_start)
+      /system/sdcard/controlscripts/domoticz start
+    ;;
+	
+	domoticz_stop)
+      /system/sdcard/controlscripts/domoticz stop
+    ;;
 
     rtsp_stop)
       /system/sdcard/controlscripts/rtsp-mjpeg stop
@@ -312,7 +320,15 @@ if [ -n "$F_cmd" ]; then
       rewrite_config /system/sdcard/config/rtspserver.conf FLIP "OFF"
       /system/sdcard/bin/setconf -k f -v 0
     ;;
+	
+	night_mode_on)
+		night_mode on
+	;;
 
+	night_mode_off)
+		night_mode off
+	;;
+	
     motion_detection_on)
       motion_detection on
     ;;

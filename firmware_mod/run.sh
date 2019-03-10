@@ -100,7 +100,23 @@ if [ ! -f $CONFIGPATH/hostname.conf ]; then
 fi
 hostname -F $CONFIGPATH/hostname.conf
 
-## Load network driver
+## Create swap file on SD if does not exist and use it
+## Important for Xiaofang 1S
+SWAP=true
+SWAPPATH="/system/sdcard/swapfile"
+SWAPSIZE=256
+if [ "$SWAP" = true ]; then
+  if [ ! -f $SWAPPATH ]; then
+    echo "Creating ${SWAPSIZE}MB swap file on SD card"  >> $LOGPATH
+    dd if=/dev/zero of=$SWAPPATH bs=1M count=$SWAPSIZE
+    mkswap $SWAPPATH
+    echo "Swap file created in $SWAPPATH" >> $LOGPATH
+  fi
+  echo "Configuring swap file" >> $LOGPATH
+  swapon $SWAPPATH
+  echo "Swap set on file $SWAPPATH" >> $LOGPATH
+fi
+
 if [ -f $CONFIGPATH/usb_eth_driver.conf ]; then
   ## Start USB Ethernet:
   echo "USB_ETHERNET: Detected USB config. Loading USB Ethernet driver" >> $LOGPATH
@@ -240,8 +256,8 @@ for i in /system/sdcard/config/autostart/*; do
 done
 
 ## Autostart startup userscripts
-for i in /system/sdcard/config/userscripts/startup/*; do             
-  $i                                                                 
-done 
+for i in /system/sdcard/config/userscripts/startup/*; do
+  $i
+done
 
 echo "Startup finished!" >> $LOGPATH

@@ -83,6 +83,10 @@ if [ -n "$F_cmd" ]; then
     echo $(motion_tracking status)
     ;;
 
+  domoticz)
+    echo $(domoticz status)
+	;;
+
   motion_mail)
     . /system/sdcard/config/motion.conf 2> /dev/null
     if [ "$send_email" == "true" ]; then
@@ -100,7 +104,7 @@ if [ -n "$F_cmd" ]; then
       echo "OFF"
     fi
     ;;
-    
+
   motion_led)
     . /system/sdcard/config/motion.conf 2> /dev/null
     if [ "$motion_trigger_led" == "true" ]; then

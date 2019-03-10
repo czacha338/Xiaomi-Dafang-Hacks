@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# This file is used as configuration file for domoticz
+
+# change to 0 if you don't want to use domoticz
+# change to 1 to turn on domoticz interface
+CONNECT_TO_DOMOTICZ=0
+DOMOTICZ_IP="XXX.XXX.XXX.XXX"
+DOMOTICZ_PORT="XXX"
+
+# how often to send states to domoticz (is seconds)
+DOMOTICZ_TIMELAPSE_INTERVAL=300;
+
+# IDX configuration, don't forget to add switches in domoticz
+# if don't want to send some state write 0
+IDX_RTSP=0
+IDX_TIMELAPS=0
+IDX_NIGHT_MODE=0
+IDX_MOTION_DETECTED=0
+
+
+

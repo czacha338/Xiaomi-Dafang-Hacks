@@ -11,7 +11,7 @@
       var eq3_count = 0;
       var fake = false;
 
-      
+
       var exposure = new TimeSeries();
       var wb = new TimeSeries();
       var wb_rg = new TimeSeries();
@@ -72,7 +72,7 @@
             var id = canvases[i].id;
             var key = divs[i].innerText;
             var width = tds[i*2+1].clientWidth;
-            canvases[i].width = width; 
+            canvases[i].width = width;
             serieses[i] = new TimeSeries();
             keys[i] = key;
             ids[i] = id;
@@ -103,7 +103,7 @@
                 var e31 = $("#eq3_user_wb").val();
                 var e32 = $("#eq3_user_iridix").val();
                 var e33 = $("#eq3_count").val();;
-                
+
                 for(var i=0; i<list.length; i++){
                     switch (list[i][0]){
                         case 'S':
@@ -164,7 +164,7 @@
             clearInterval(timer);
         }
 
-    
+
         $('#play').click(function (event) {
         /*if(running){
             clearInterval(timer);
@@ -429,7 +429,7 @@ Please stop autonight detection service if its running.
         </table>
 
     <br>
-    
+
     <table border="1" id="t_eq2" style="margin: 0px;" class='eq2'>
             <tr><td rowspan='2'><input type="checkbox" checked=true id="eq2" onclick='eq_click("eq2")'></td><td class='code_text'> If  <br></td>
                 <td><table border='0'>
@@ -455,7 +455,7 @@ Please stop autonight detection service if its running.
             </tr>
     </table>
     <br>
-    
+
     <table border="1" id="t_eq3" style="margin: 0px;" class='eq3'>
             <tr><td rowspan='2'><input type="checkbox" checked=true id="eq3" onclick='eq_click("eq3")'></td><td class='code_text'> If  <br></td>
                 <td><table border='0'>

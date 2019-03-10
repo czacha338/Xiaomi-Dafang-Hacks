@@ -4,6 +4,9 @@
 . /system/sdcard/config/motion.conf
 . /system/sdcard/scripts/common_functions.sh
 
+
+# common functions for domoticz
+. /system/sdcard/scripts/domoticz_common_functions.sh
 debug_msg () {
 	if [ "$debug_msg_enable" = true ]; then
 		echo "DEBUG: $*" 1>&2
@@ -47,6 +50,9 @@ debug_msg "Got snapshot_tempfile=$snapshot_tempfile"
 if [ "$save_video" = true  ] || [ "$telegram_alert_type" = "video" ] ; then
 	record_video
 fi
+
+# common functions for domoticz
+. /system/sdcard/scripts/domoticz_common_functions.sh
 
 # Turn on the amber led
 if [ "$motion_trigger_led" = true ] ; then
@@ -211,15 +217,6 @@ for i in /system/sdcard/config/userscripts/motiondetection/*; do
     fi
 done
 
-# Wait for all background jobs to finish before existing and deleting tempfile
-debug_msg "Waiting for background jobs to end:"
-for jobpid in $(jobs -p); do
-	wait "$jobpid"
-	debug_msg " Job $jobpid ended"
-done
 
-debug_msg "Cleanup tempfiles"
-rm "$snapshot_tempfile"
-rm "$video_tempfile"
-
-debug_msg "DONE"
+# Update status to domoticz
+domoticz_send_state $IDX_MOTION_DETECTED 1
