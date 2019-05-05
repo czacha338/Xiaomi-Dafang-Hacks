@@ -218,5 +218,30 @@ for i in /system/sdcard/config/userscripts/motiondetection/*; do
 done
 
 
+#Save timestamps
+if [ "$save_timestamps" = true ] ; then
+        (
+	timestamp_dir=$save_dir/${snapshot_filename}	
+        debug_msg "Save timestamps to $timestamp_dir"
+
+        if [ ! -d "$timestamp_dir" ]; then
+                mkdir -p "$timestamp_dir"
+        fi
+	
+	#clear dirs
+	if [ "$(ls $save_dir | wc -l)" -ge "$max_timestamp_dirs" ]; then
+		old_dir=$(ls $save_dir/ -t | tail -1)
+		rm -rf ${save_dir}/${old_dir}
+        fi
+
+	#copy_files
+        cp $(ls -tr /system/sdcard/DCIM/timelapse/* | tail -10) "$timestamp_dir/"
+
+	#send directory to domoticz
+	domoticz_send_variable $VAR_MOTION_DIRECTORY 2 $timestamp_dir
+        ) 
+fi
+
+
 # Update status to domoticz
 domoticz_send_state $IDX_MOTION_DETECTED 1

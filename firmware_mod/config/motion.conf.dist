@@ -17,7 +17,7 @@ motion_tracking=off
 # Configure how to deal with motion events:
 
 motion_trigger_led=true
-save_snapshot=true
+save_snapshot=false
 max_snapshots=4
 publish_mqtt_message=false
 publish_mqtt_snapshot=false
@@ -47,3 +47,7 @@ ftp_username="user1"
 ftp_password="password2"
 ftp_stills_dir="motion/stills"
 ftp_videos_dir="motion/videos"
+
+# Timelapse config
+save_timestamps=true
+max_timestamp_dirs=30

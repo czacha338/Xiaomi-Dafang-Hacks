@@ -37,6 +37,10 @@ while true; do
     fi
     counter_formatted=$(printf '%03d' $counter)
     filename="${filename_prefix}_${counter_formatted}.jpg"
+	# Limit the number of photos
+	if [ "$(ls $SAVE_DIR | wc -l)" -ge "$max_photos" ]; then
+		rm "$(ls $SAVE_DIR/* -t | tail -1)"
+	fi
     if [ -z "$COMPRESSION_QUALITY" ]; then
          /system/sdcard/bin/getimage > "$SAVE_DIR/$filename" &
     else

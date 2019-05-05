@@ -18,5 +18,7 @@ IDX_TIMELAPS=0
 IDX_NIGHT_MODE=0
 IDX_MOTION_DETECTED=0
 
-
+# VARIABLE configuration
+# if don't want to send var write ""
+VAR_MOTION_DIRECTORY=""
 
