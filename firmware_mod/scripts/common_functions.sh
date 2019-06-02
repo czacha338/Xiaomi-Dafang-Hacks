@@ -471,6 +471,7 @@ set_timezone(){
   timezone=$(/system/sdcard/bin/busybox awk -F '\t' -v tzn="$timezone_name" '($1==tzn) {print $2}' /system/sdcard/www/timezones.tsv)
   if [ "$(cat /etc/TZ)" != "$timezone" ]; then
     echo "$timezone" > /etc/TZ
+	dos2unix /etc/TZ
   fi
 }
 
