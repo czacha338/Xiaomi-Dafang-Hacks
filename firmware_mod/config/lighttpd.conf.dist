@@ -29,10 +29,10 @@ cgi.assign = ( ".cgi" => "/bin/sh" )
 
 
 
-$SERVER["socket"] == ":443" {
-  ssl.engine = "enable"
-  ssl.pemfile = "/system/sdcard/config/lighttpd.pem"
-}
+#$SERVER["socket"] == ":443" {
+#  ssl.engine = "enable"
+#  ssl.pemfile = "/system/sdcard/config/lighttpd.pem"
+#}
 
 
 # Support letsencrypt SSL cert paths
