@@ -225,15 +225,23 @@ update_motor_pos(){
   sleep ${SLEEP_NUM//-/}
   # Display AXIS to OSD
   update_axis
-  /system/sdcard/bin/setconf -k o -v "$OSD"
 }
 
-# Read the light sensor
+# Read the hw light sensor (hw in mqtt.conf)
 ldr(){
   case "$1" in
   status)
     brightness=$(dd if=/dev/jz_adc_aux_0 count=20 2> /dev/null |  sed -e 's/[^\.]//g' | wc -m)
     echo "$brightness"
+  esac
+}
+
+# Read the virtual light sensor (virtual in mqtt.conf)
+exposure(){
+  case "$1" in
+  status)
+    isp_exposure=$(grep 'ISP exposure log2 id:' /proc/jz/isp/isp_info  | sed 's/^.*: //')
+    echo "$isp_exposure"
   esac
 }
 
@@ -312,6 +320,66 @@ rtsp_mjpeg_server(){
   esac
 }
 
+# Control the video recorder
+recording(){
+  case "$1" in
+  on)
+    /system/sdcard/controlscripts/recording start
+    ;;
+  off)
+    /system/sdcard/controlscripts/recording stop
+    ;;
+  status)
+    if /system/sdcard/controlscripts/recording status | grep -q "PID"
+    then
+        echo "ON"
+    else
+        echo "OFF"
+    fi
+    ;;
+  esac
+}
+
+# Control the ftp server
+ftp_server(){
+  case "$1" in
+  on)
+    /system/sdcard/controlscripts/ftp_server start
+    ;;
+  off)
+    /system/sdcard/controlscripts/ftp_server stop
+    ;;
+  status)
+    if /system/sdcard/controlscripts/ftp_server status | grep -q "PID"
+    then
+        echo "ON"
+    else
+        echo "OFF"
+    fi
+    ;;
+  esac
+}
+
+# Control the timelapse
+timelapse(){
+  case "$1" in
+  on)
+    /system/sdcard/controlscripts/timelapse start
+    ;;
+  off)
+    /system/sdcard/controlscripts/timelapse stop
+    ;;
+  status)
+    if /system/sdcard/controlscripts/timelapse status | grep -q "PID"
+    then
+        echo "ON"
+    else
+        echo "OFF"
+    fi
+    ;;
+  esac
+}
+
 # Control the motion detection function
 motion_detection(){
   case "$1" in
@@ -336,6 +404,28 @@ motion_detection(){
   esac
 }
 
+# Control the motion detection led function
+motion_led(){
+  case "$1" in
+  on)
+    rewrite_config /system/sdcard/config/motion.conf motion_trigger_led "true"
+    ;;
+  off)
+    rewrite_config /system/sdcard/config/motion.conf motion_trigger_led "false"
+    ;;
+  status)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'motion_trigger_led'|cut -f2 -d \=)
+    case $status in
+      true)
+        echo "ON"
+        ;;
+      false)
+        echo "OFF"
+        ;;
+    esac
+  esac
+}
+
 # Control the motion detection mail function
 motion_send_mail(){
   case "$1" in
@@ -346,7 +436,7 @@ motion_send_mail(){
     rewrite_config /system/sdcard/config/motion.conf send_email "false"
     ;;
   status)
-    status=$(awk '/send_email/' /system/sdcard/config/motion.conf |cut -f2 -d \=)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'send_email'|cut -f2 -d \=)
     case $status in
       false)
         echo "OFF"
@@ -368,12 +458,56 @@ motion_send_telegram(){
     rewrite_config /system/sdcard/config/motion.conf send_telegram "false"
     ;;
   status)
-    status=$(awk '/send_telegram/' /system/sdcard/config/motion.conf |cut -f2 -d \=)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'send_telegram'|cut -f2 -d \=)
     case $status in
       true)
         echo "ON"
         ;;
       *)
+        echo "OFF"
+        ;;
+    esac
+  esac
+}
+
+# Control the motion detection snapshot function
+motion_snapshot(){
+  case "$1" in
+  on)
+    rewrite_config /system/sdcard/config/motion.conf save_snapshot "true"
+    ;;
+  off)
+    rewrite_config /system/sdcard/config/motion.conf save_snapshot "false"
+    ;;
+  status)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'save_snapshot[^_]'|cut -f2 -d \=)
+    case $status in
+      false)
+        echo "OFF"
+        ;;
+      true)
+        echo "ON"
+        ;;
+    esac
+  esac
+}
+
+# Control the motion detection video function
+motion_video(){
+  case "$1" in
+  on)
+    rewrite_config /system/sdcard/config/motion.conf save_video "true"
+    ;;
+  off)
+    rewrite_config /system/sdcard/config/motion.conf save_video "false"
+    ;;
+  status)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'save_video[^_]'|cut -f2 -d \=)
+    case $status in
+      true)
+        echo "ON"
+        ;;
+      false)
         echo "OFF"
         ;;
     esac
@@ -402,12 +536,83 @@ motion_tracking(){
   esac
 }
 
+# Control the motion detection publish MQTT-message function
+motion_mqtt_publish(){
+  case "$1" in
+  on)
+    rewrite_config /system/sdcard/config/motion.conf publish_mqtt_message "true"
+    ;;
+  off)
+    rewrite_config /system/sdcard/config/motion.conf publish_mqtt_message "false"
+    ;;
+  status)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'publish_mqtt_message'|cut -f2 -d \=)
+    case $status in
+      true)
+        echo "ON"
+        ;;
+      false)
+        echo "OFF"
+        ;;
+    esac
+  esac
+}
+
+# Control the motion detection publish snapshots in MQTT-message function
+motion_mqtt_snapshot(){
+  case "$1" in
+  on)
+    rewrite_config /system/sdcard/config/motion.conf publish_mqtt_snapshot "true"
+    ;;
+  off)
+    rewrite_config /system/sdcard/config/motion.conf publish_mqtt_snapshot "false"
+    ;;
+  status)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'publish_mqtt_snapshot'|cut -f2 -d \=)
+    case $status in
+      true)
+        echo "ON"
+        ;;
+      false)
+        echo "OFF"
+        ;;
+    esac
+  esac
+}
+
+# Control the motion detection publish video in MQTT-message function
+motion_mqtt_video(){
+  case "$1" in
+  on)
+    rewrite_config /system/sdcard/config/motion.conf publish_mqtt_video "true"
+    ;;
+  off)
+    rewrite_config /system/sdcard/config/motion.conf publish_mqtt_video "false"
+    ;;
+  status)
+    status=$(grep '^[^#;]' /system/sdcard/config/motion.conf|grep 'publish_mqtt_video'|cut -f2 -d \=)
+    case $status in
+      true)
+        echo "ON"
+        ;;
+      false)
+        echo "OFF"
+        ;;
+    esac
+  esac
+}
+
 # Control the night mode
 night_mode(){
   case "$1" in
   on)
     /system/sdcard/bin/setconf -k n -v 1
-    ir_led on
+    . /system/sdcard/config/autonight.conf
+    if [ -z "$ir_led_off" ] || [ $ir_led_off = false ]; then
+        ir_led on
+    else
+        ir_led off
+    fi
     ir_cut off
     /system/sdcard/bin/setconf -k n -v 1
 	domoticz_send_state $IDX_NIGHT_MODE 1
@@ -459,9 +664,14 @@ snapshot(){
 # Update axis
 update_axis(){
   . /system/sdcard/config/osd.conf > /dev/null 2>/dev/null
-  AXIS=$(/system/sdcard/bin/motor -d s | sed '3d' | awk '{printf ("%s ",$0)}' | awk '{print "X="$2,"Y="$4}')
-  if [ "$DISPLAY_AXIS" == "true" ]; then
-    OSD="${OSD} ${AXIS}"
+  AXIS=$(/system/sdcard/bin/motor -d s | sed '3d' | awk '{printf ("%s ",$0)}' | awk '{print " X="$2,"Y="$4}')
+
+  if [ "$ENABLE_OSD" = "true" ]; then
+    if [ "$DISPLAY_AXIS" = "true" ]; then
+      OSD="${OSD}${AXIS}"
+    fi
+
+    /system/sdcard/bin/setconf -k o -v "$OSD"
   fi
 }
 
@@ -483,4 +693,21 @@ reboot_system() {
 # Re-Mount the SD Card
 remount_sdcard() {
   mount -o remount,rw /system/sdcard
+}
+
+# Check commit between VERSION file and github
+check_commit() {
+  if [ -s /system/sdcard/VERSION ]; then
+    localcommit=$(/system/sdcard/bin/jq -r .commit /system/sdcard/VERSION)
+    localbranch=$(/system/sdcard/bin/jq -r .branch /system/sdcard/VERSION)
+    remotecommit=$(/system/sdcard/bin/curl -s https://api.github.com/repos/EliasKotlyar/Xiaomi-Dafang-Hacks/commits/${localbranch} | /system/sdcard/bin/jq -r '.sha[0:7]')
+    if [ ${localcommit} = ${remotecommit} ]; then
+     echo "${localcommit} ( No update available)"
+    else
+     commitbehind=$(/system/sdcard/bin/curl -s https://api.github.com/repos/EliasKotlyar/Xiaomi-Dafang-Hacks/compare/${remotecommit}...${localcommit} | /system/sdcard/bin/jq -r '.behind_by')
+     echo "${localcommit} ( ${commitbehind} commits behind Github)"
+    fi
+  else
+    echo "No version file"
+  fi
 }

@@ -3,8 +3,6 @@
 . /system/sdcard/scripts/domoticz_common_functions.sh
 
 PIDFILE="/run/v4l2rtspserver-master-h264.pid"
-LOGDIR="/tmp"
-LOGPATH="$LOGDIR/v4l2rtspserver-master.log"
 export LD_LIBRARY_PATH='/system/sdcard/lib/:/thirdlib:/system/lib'
 
 if [ ! -f /system/sdcard/config/rtspserver.conf ]; then
@@ -15,6 +13,10 @@ if [ -f /system/sdcard/config/rtspserver.conf ]; then
   . /system/sdcard/config/rtspserver.conf
 fi
 
+if [ "$LOG" != true ] ; then
+  LOGPATH="/dev/null"
+fi
+
 if [ -f /system/sdcard/config/osd.conf ]; then
   . /system/sdcard/config/osd.conf 2>/dev/null
 fi
@@ -23,8 +25,12 @@ status()
 {
   pid="$(cat "$PIDFILE" 2>/dev/null)"
   if [ "$pid" ]; then
-    # Prints PID: $pid if exists and returns 0(no error) else returns 1(error condition)
+    # return current pid if pidfile exists and contained pid is alive
+    # return 1 if pidfile existed but the contained pid is dead
     kill -0 "$pid" >/dev/null && echo "PID: $pid" || return 1
+  else
+    # return 2 if pidfile did not exist
+    return 2
   fi
 }
 
@@ -67,7 +73,7 @@ start()
 
     ## Video format
     if [ "$VIDEOFORMAT" != "" ]; then
-	    VIDEOFORMAT="-r $VIDEOFORMAT"
+	    VIDEOFORMAT="-r $VIDEOFORMAT -F $FRAMERATE_NUM"
     fi
 
     ## UserName and password
@@ -80,6 +86,11 @@ start()
         PORT="-P $PORT"
     fi
 
+    ## Multicast
+    if [ "$MULTICASTDEST" != "" ]; then
+        MULTICASTDEST="-M $MULTICASTDEST"
+    fi
+
     ## FLIP
     if [ "$FLIP" == "ON" ]; then
         /system/sdcard/bin/setconf -k f -v 1
@@ -88,9 +99,9 @@ start()
     fi
 
     echo "================== START ===============" >> "$LOGPATH"
-    echo "/system/sdcard/bin/v4l2rtspserver-master $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT" >> "$LOGPATH"
+    echo "/system/sdcard/bin/v4l2rtspserver-master $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT $MULTICASTDEST" >> "$LOGPATH"
     cd /system/sdcard/hls
-    /system/sdcard/bin/v4l2rtspserver-master $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT 2>> "$LOGPATH" >> "$LOGPATH" &
+    /system/sdcard/bin/v4l2rtspserver-master $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT $MULTICASTDEST 2>> "$LOGPATH" >> "$LOGPATH" &
     echo "$!" > "$PIDFILE"
   fi
   domoticz_send_state $IDX_RTSP 1

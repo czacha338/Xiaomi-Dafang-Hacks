@@ -55,10 +55,16 @@ echo "Bind mounted /system/sdcard/root to /root" >> $LOGPATH
 mount -o bind /system/sdcard/etc /etc
 echo "Bind mounted /system/sdcard/etc to /etc" >> $LOGPATH
 
+## Create busybox aliases
+if [ ! -f ~/.busybox_aliases ]; then
+  /system/sdcard/bin/busybox --list | sed "s/^\(.*\)$/alias \1='busybox \1'/" > ~/.busybox_aliases
+fi
+
+if [ -f "$CONFIGPATH/swap.conf" ]; then
+  . $CONFIGPATH/swap.conf
+fi
+
 ## Create a swap file on SD if desired
-SWAP=false
-SWAPPATH="/system/sdcard/swapfile"
-SWAPSIZE=256
 if [ "$SWAP" = true ]; then
   if [ ! -f $SWAPPATH ]; then
     echo "Creating ${SWAPSIZE}MB swap file on SD card"  >> $LOGPATH
@@ -67,8 +73,16 @@ if [ "$SWAP" = true ]; then
     echo "Swap file created in $SWAPPATH" >> $LOGPATH
   fi
   echo "Configuring swap file" >> $LOGPATH
-  swapon $SWAPPATH
+  swapon -p 10 $SWAPPATH
   echo "Swap set on file $SWAPPATH" >> $LOGPATH
+fi
+
+# Create ZRAM swap as on the original firmware
+if [ ! "$SWAP_ZRAM" = false ]; then
+    echo 100 > /proc/sys/vm/swappiness
+    echo $SWAP_ZRAM_SIZE > /sys/block/zram0/disksize
+    mkswap /dev/zram0
+    swapon -p 20 /dev/zram0
 fi
 
 ## Create crontab dir and start crond:
@@ -156,7 +170,7 @@ if [ -f "$CONFIGPATH/staticip.conf" ]; then
   # Configure staticip/netmask from config/staticip.conf
   staticip_and_netmask=$(cat "$CONFIGPATH/staticip.conf" | grep -v "^$" | grep -v "^#")
   ifconfig "$network_interface_name" $staticip_and_netmask
-  ifconifg "$network_interface_name" up
+  ifconfig "$network_interface_name" up
   # Configure default gateway
   if [ -f "$CONFIGPATH/defaultgw.conf" ]; then
     defaultgw=$(cat "$CONFIGPATH/defaultgw.conf" | grep -v "^$" | grep -v "^#")
@@ -166,7 +180,7 @@ if [ -f "$CONFIGPATH/staticip.conf" ]; then
   echo "Configured $network_interface_name with static address $staticip_and_netmask" >> $LOGPATH
 else
   # Configure with DHCP client
-  ifconifg "$network_interface_name" up
+  ifconfig "$network_interface_name" up
   udhcpc_status=$(udhcpc -i "$network_interface_name" -p /var/run/udhcpc.pid -b -x hostname:"$(hostname)")
   echo "udhcpc: $udhcpc_status" >> $LOGPATH
 fi
@@ -195,10 +209,11 @@ echo 1 > /sys/class/gpio/gpio49/active_low
 echo "Initialized gpios" >> $LOGPATH
 
 ## Set leds to default startup states:
+## LED's off by default to inscrease camera stealth
 ir_led off
 ir_cut on
 yellow_led off
-blue_led on
+blue_led off
 
 ## Load motor driver module:
 insmod /driver/sample_motor.ko
@@ -222,6 +237,8 @@ else
 fi
 
 ## Start SSH Server:
+ln -s /system/sdcard/bin/dropbearmulti /system/bin/scp
+touch /var/log/lastlog 2>/dev/null
 dropbear_status=$(/system/sdcard/bin/dropbearmulti dropbear -R)
 echo "dropbear: $dropbear_status" >> $LOGPATH
 
@@ -240,6 +257,16 @@ fi
 lighttpd_status=$(/system/sdcard/bin/lighttpd -f /system/sdcard/config/lighttpd.conf)
 echo "lighttpd: $lighttpd_status" >> $LOGPATH
 
+## Copy autonight configuration:
+if [ ! -f $CONFIGPATH/autonight.conf ]; then
+  cp $CONFIGPATH/autonight.conf.dist $CONFIGPATH/autonight.conf
+fi
+
+## Copy onvif camera ptz configuration:
+if [ ! -f $CONFIGPATH/ptz_presets.conf ]; then
+  cp $CONFIGPATH/ptz_presets.conf.dist $CONFIGPATH/ptz_presets.conf
+fi
+
 ## Configure OSD:
 if [ -f /system/sdcard/controlscripts/configureOsd ]; then
     . /system/sdcard/controlscripts/configureOsd  2>/dev/null
@@ -252,12 +279,18 @@ fi
 
 ## Autostart all enabled services:
 for i in /system/sdcard/config/autostart/*; do
-  $i
+  $i &
 done
 
 ## Autostart startup userscripts
 for i in /system/sdcard/config/userscripts/startup/*; do
   $i
+  if [[ ${i: -3} == ".sh" ]]; then
+    $i &
+  fi
 done
 
 echo "Startup finished!" >> $LOGPATH
+echo "" >> $LOGPATH
+echo "Contents of dmesg after startup:" >> $LOGPATH
+dmesg >> $LOGPATH
