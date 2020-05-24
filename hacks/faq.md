@@ -23,7 +23,10 @@ No that's not possible. It can be done, but there will be a lot of trouble in do
 
 ### Can I have FullHD resolution?
 
-Yes, but you must flash a custom bootloader to achieve this. 
+Yes, but you must [flash a custom bootloader](/hacks/flashinguboot.md) to achieve this.
+
+### Can the camera send a multicast stream?
+Yes, uncomment and customize the multicast destination IP and port in /system/sdcard/config/rtspserver.conf and restart.
 
 ### Can I use USB ethernet cards?
 Yes, just create a usb_eth_driver.conf file in /system/sdcard/config.
@@ -32,8 +35,6 @@ cp /system/sdcard/config/usb_eth_driver.conf.dist /system/sdcard/config/usb_eth_
 reboot
 ```
 If this file exists the run.sh won't start the WIFI driver but instead load the usb ethernet driver. Currently only the asix.ko driver is supported but others can be built.
-
-[Custom Bootloader Installation](/hacks/flashinguboot.md)
 
 ### Which Features does the CFW contain?
 - Full working RTSP with H264/MJPEG. Based on https://github.com/mpromonet/v4l2rtspserver
@@ -60,6 +61,6 @@ Recording Audio:
 - Telegram
 - Anything other that you can compile yourself. There is a toolchain available.
 
-What if my scripts in config/userscripts/motiondetection are not executed or mqtt/telegram messages/emails are not sent on motion?
+### What if my scripts in config/userscripts/motiondetection are not executed or mqtt/telegram messages/emails are not sent on motion?
 
-Your camera probably runs out of memory when processing the motion event. Try to [enable some swap memory](https://github.com/EliasKotlyar/Xiaomi-Dafang-Hacks/blob/230f4d3cf306d7842287e9e5002d806513c4b2b8/firmware_mod/run.sh#L59).
+Your camera probably runs out of memory when processing the motion event. This is likely in cameras with 64MB e.g. the Xiaofang 1s. Try to [enable some swap memory](https://github.com/EliasKotlyar/Xiaomi-Dafang-Hacks/blob/master/firmware_mod/config/swap.conf.dist#L4) by copying `swap.conf.dist` to `swap.conf` and setting `SWAP=true`.

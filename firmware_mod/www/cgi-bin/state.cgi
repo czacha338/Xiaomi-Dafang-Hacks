@@ -29,6 +29,10 @@ if [ -n "$F_cmd" ]; then
     echo $(ir_cut status)
     ;;
 
+  night_mode)
+    echo $(night_mode status)
+    ;;
+
   rtsp_h264)
     echo $(rtsp_h264_server status)
     ;;
@@ -41,12 +45,8 @@ if [ -n "$F_cmd" ]; then
     echo $(auto_night_mode status)
     ;;
   auto_night_detection_mode)
-    if [ -f /system/sdcard/config/autonight.conf ];
-      then night_mode=$(cat /system/sdcard/config/autonight.conf);
-    else
-      night_mode="HW";
-    fi
-    echo $night_mode
+    . /system/sdcard/config/autonight.conf 2> /dev/null
+    echo $autonight_mode
     ;;
   mqtt_status)
     if [ -f /run/mqtt-status.pid ];
@@ -141,13 +141,28 @@ if [ -n "$F_cmd" ]; then
     fi
     ;;
 
+  motion_mqtt_video)
+    . /system/sdcard/config/motion.conf 2> /dev/null
+    if [ "$publish_mqtt_video" == "true" ]; then
+      echo "ON"
+    else
+      echo "OFF"
+    fi
+    ;;
+
   hostname)
     echo $(hostname);
     ;;
 
-  version)
-    echo $(cat /system/sdcard/.lastCommitDate);
-    ;;
+  version)   
+    if [ -s "/system/sdcard/VERSION" ]; then   
+    V_BRANCH=$(/system/sdcard/bin/jq -r .branch /system/sdcard/VERSION)
+    V_COMMIT=$(/system/sdcard/bin/jq -r .commit /system/sdcard/VERSION)
+    echo "commit <b>${V_COMMIT}</b> from branch <b>${V_BRANCH}</b>"
+    else                                    
+       echo "Need to update to create a version file." 
+    fi                                      
+    ;; 
 
   *)
     echo "Unsupported command '$F_cmd'"
