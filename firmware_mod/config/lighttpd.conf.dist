@@ -62,7 +62,7 @@ cgi.assign = ( ".cgi" => "/bin/sh" )
 #            url.redirect = (".*" => "https://%0$0")
 #        }
 #    }
-}
+#}
 
 ## enable debugging
 #debug.log-request-header     = "enable"
